@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contract Expiration Dashboard 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #1e2330;
+    --border2: #252b3b;
+    --text: #e8ecf4;
+    --text-dim: #6b7592;
+    --text-muted: #3a4258;
+    --red: #ff3d55;
+    --red-bg: #1a0a0d;
+    --red-border: #3d1018;
+    --orange: #ff8c42;
+    --orange-bg: #160e06;
+    --orange-border: #38200e;
+    --yellow: #ffd23f;
+    --yellow-bg: #141006;
+    --yellow-border: #332a0a;
+    --green: #22d3a0;
+    --green-bg: #061510;
+    --green-border: #0e3024;
+    --blue: #4fa3ff;
+    --blue-bg: #060f1e;
+    --blue-border: #0e2245;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+
+  /* HEADER */
+  .header {
+    padding:28px 40px 20px;
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:flex-end; justify-content:space-between;
+    position:sticky; top:0;
+    background:rgba(10,12,16,0.97); backdrop-filter:blur(12px);
+    z-index:100;
+  }
+  .header-left h1 { font-family:'Syne',sans-serif; font-size:22px; font-weight:800; letter-spacing:-0.5px; }
+  .header-left .subtitle { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); margin-top:3px; letter-spacing:0.5px; }
+  .header-right { display:flex; gap:10px; align-items:center; }
+  .header-badge { font-family:'DM Mono',monospace; font-size:10px; background:var(--red-bg); border:1px solid var(--red-border); color:var(--red); padding:5px 12px; border-radius:4px; letter-spacing:1px; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
+  .pulse { width:7px; height:7px; background:var(--red); border-radius:50%; animation:pulse 1.5s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+  /* EXPORT BUTTON */
+  .export-btn {
+    font-family:'DM Mono',monospace; font-size:10px;
+    background:var(--surface2); border:1px solid var(--border2);
+    color:var(--text-dim); padding:5px 14px; border-radius:4px;
+    cursor:pointer; letter-spacing:1px; text-transform:uppercase;
+    display:flex; align-items:center; gap:6px;
+    transition:all 0.2s;
+  }
+  .export-btn:hover { color:var(--text); border-color:var(--text-muted); background:var(--surface); }
+
+  /* TABS */
+  .view-tabs { display:flex; padding:20px 40px 0; border-bottom:1px solid var(--border); }
+  .tab-btn { padding:10px 24px; font-family:'Syne',sans-serif; font-size:13px; font-weight:600; color:var(--text-dim); background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; transition:all .2s; margin-bottom:-1px; }
+  .tab-btn:hover { color:var(--text); }
+  .tab-btn.active { color:var(--text); border-bottom-color:var(--red); }
+
+  /* MAIN */
+  .main { padding:32px 40px; max-width:1600px; }
+
+  /* KPI ROW */
+  .kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px; }
+  .kpi-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px 22px; position:relative; overflow:hidden; }
+  .kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+  .kpi-card.red::before { background:linear-gradient(90deg,var(--red),transparent); }
+  .kpi-card.orange::before { background:linear-gradient(90deg,var(--orange),transparent); }
+  .kpi-card.yellow::before { background:linear-gradient(90deg,var(--yellow),transparent); }
+  .kpi-card.blue::before { background:linear-gradient(90deg,var(--blue),transparent); }
+  .kpi-label { font-family:'DM Mono',monospace; font-size:10px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; margin-bottom:10px; }
+  .kpi-number { font-family:'Syne',sans-serif; font-size:42px; font-weight:800; line-height:1; margin-bottom:6px; }
+  .kpi-card.red .kpi-number { color:var(--red); }
+  .kpi-card.orange .kpi-number { color:var(--orange); }
+  .kpi-card.yellow .kpi-number { color:var(--yellow); }
+  .kpi-card.blue .kpi-number { color:var(--blue); }
+  .kpi-desc { font-size:12px; color:var(--text-dim); line-height:1.4; }
+
+  /* SECTION TITLE */
+  .section-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--text-dim); margin-bottom:16px; display:flex; align-items:center; gap:10px; }
+  .section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* FILTER ROW */
+  .filter-row { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+  .filter-label { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); margin-right:4px; flex-basis:100%; margin-bottom:2px; }
+  .filter-group { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .filter-separator { width:1px; height:20px; background:var(--border2); margin:0 4px; }
+  .filter-btn { font-family:'DM Mono',monospace; font-size:10px; padding:5px 12px; border-radius:5px; border:1px solid var(--border); background:var(--surface); color:var(--text-dim); cursor:pointer; transition:all .2s; letter-spacing:.5px; white-space:nowrap; }
+  .filter-btn:hover { background:var(--surface2); color:var(--text); border-color:var(--border2); }
+  .filter-btn.active { background:var(--surface2); color:var(--text); border-color:var(--border2); }
+  .filter-btn.f-red.active { background:var(--red-bg); color:var(--red); border-color:var(--red-border); }
+  .filter-btn.f-orange.active { background:var(--orange-bg); color:var(--orange); border-color:var(--orange-border); }
+  .filter-btn.f-yellow.active { background:var(--yellow-bg); color:var(--yellow); border-color:var(--yellow-border); }
+  .filter-btn.f-blue.active { background:var(--blue-bg); color:var(--blue); border-color:var(--blue-border); }
+
+  /* LEGEND */
+  .legend { display:flex; gap:20px; align-items:center; margin-bottom:20px; padding:12px 16px; background:var(--surface); border:1px solid var(--border); border-radius:8px; width:fit-content; flex-wrap:wrap; }
+  .legend-item { display:flex; align-items:center; gap:7px; font-size:11px; font-family:'DM Mono',monospace; color:var(--text-dim); }
+  .legend-dot { width:9px; height:9px; border-radius:50%; }
+
+  /* BUYER GRID */
+  .buyer-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:16px; margin-bottom:40px; }
+  .buyer-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; transition:all .25s; cursor:pointer; }
+  .buyer-card:hover { border-color:var(--border2); transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,.4); }
+  .buyer-card.expanded { border-color:var(--border2); }
+
+  .buyer-header { padding:18px 20px; display:flex; align-items:center; gap:14px; }
+  .buyer-avatar { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-size:14px; font-weight:800; flex-shrink:0; }
+  .buyer-info { flex:1; min-width:0; }
+  .buyer-name { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .buyer-total { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); margin-top:2px; }
+  .buyer-urgency-pills { display:flex; gap:5px; flex-shrink:0; }
+  .pill { font-family:'DM Mono',monospace; font-size:10px; font-weight:500; padding:3px 8px; border-radius:4px; display:flex; align-items:center; gap:3px; min-width:28px; justify-content:center; }
+  .pill.red { background:var(--red-bg); border:1px solid var(--red-border); color:var(--red); }
+  .pill.orange { background:var(--orange-bg); border:1px solid var(--orange-border); color:var(--orange); }
+  .pill.yellow { background:var(--yellow-bg); border:1px solid var(--yellow-border); color:var(--yellow); }
+  .pill.gray { background:var(--surface2); border:1px solid var(--border); color:var(--text-dim); }
+  .toggle-icon { font-size:12px; color:var(--text-dim); transition:transform .3s; flex-shrink:0; }
+  .buyer-card.expanded .toggle-icon { transform:rotate(180deg); }
+
+  .buyer-bar-section { padding:0 20px 16px; }
+  .buyer-bar-track { height:6px; background:var(--surface2); border-radius:3px; overflow:hidden; display:flex; gap:2px; }
+  .bar-seg { height:100%; border-radius:3px; transition:width .6s cubic-bezier(.4,0,.2,1); }
+  .bar-seg.red { background:var(--red); }
+  .bar-seg.orange { background:var(--orange); }
+  .bar-seg.yellow { background:var(--yellow); }
+  .bar-seg.blue { background:var(--blue); }
+
+  /* CONTRACT LIST */
+  .buyer-contracts { border-top:1px solid var(--border); max-height:0; overflow:hidden; transition:max-height .4s cubic-bezier(.4,0,.2,1); }
+  .buyer-contracts.open { max-height:700px; overflow-y:auto; }
+  .contract-row { display:grid; grid-template-columns:10px 1fr auto auto auto; align-items:center; padding:9px 20px; gap:10px; border-bottom:1px solid var(--border); transition:background .15s; font-size:12px; }
+  .contract-row:last-child { border-bottom:none; }
+  .contract-row:hover { background:var(--surface2); }
+  .contract-urgency-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .dot-red { background:var(--red); }
+  .dot-orange { background:var(--orange); }
+  .dot-yellow { background:var(--yellow); }
+  .dot-blue { background:var(--blue); }
+  .contract-name { min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text); }
+  .contract-num { font-family:'DM Mono',monospace; font-size:10px; color:var(--text-muted); background:var(--surface2); padding:2px 7px; border-radius:3px; flex-shrink:0; border:1px solid var(--border); white-space:nowrap; }
+  .contract-dept { font-family:'DM Mono',monospace; font-size:10px; color:var(--text-dim); background:var(--surface2); padding:2px 6px; border-radius:3px; flex-shrink:0; }
+  .contract-urgency-label { font-family:'DM Mono',monospace; font-size:10px; flex-shrink:0; padding:2px 7px; border-radius:3px; white-space:nowrap; }
+  .label-red { background:var(--red-bg); color:var(--red); border:1px solid var(--red-border); }
+  .label-orange { background:var(--orange-bg); color:var(--orange); border:1px solid var(--orange-border); }
+  .label-yellow { background:var(--yellow-bg); color:var(--yellow); border:1px solid var(--yellow-border); }
+  .label-blue { background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue-border); }
+
+  /* OWNER TABLE */
+  .owner-table { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:40px; }
+  .owner-table-header { display:grid; grid-template-columns:2fr 1fr 60px 60px 60px 60px; padding:12px 20px; background:var(--surface2); border-bottom:1px solid var(--border); gap:12px; }
+  .owner-table-header span { font-family:'DM Mono',monospace; font-size:10px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; }
+  .sort-btn { cursor:pointer; user-select:none; display:inline-flex; align-items:center; gap:4px; }
+  .sort-btn:hover { color:var(--text); }
+  .owner-row { display:grid; grid-template-columns:2fr 1fr 60px 60px 60px 60px; padding:13px 20px; gap:12px; border-bottom:1px solid var(--border); align-items:center; transition:background .15s; }
+  .owner-row:last-child { border-bottom:none; }
+  .owner-row:hover { background:var(--surface2); }
+  .owner-row-name { font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; }
+  .owner-row-dept { font-family:'DM Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:2px; }
+  .owner-row-total { font-family:'DM Mono',monospace; font-size:12px; color:var(--text); }
+  .count-badge { width:36px; height:24px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-size:13px; font-weight:700; }
+  .cb-0 { background:transparent; color:var(--text-muted); }
+  .cb-red { background:var(--red-bg); color:var(--red); border:1px solid var(--red-border); }
+  .cb-orange { background:var(--orange-bg); color:var(--orange); border:1px solid var(--orange-border); }
+  .cb-yellow { background:var(--yellow-bg); color:var(--yellow); border:1px solid var(--yellow-border); }
+  .cb-blue { background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue-border); }
+
+  /* HEATMAP */
+  .heat-grid { display:grid; grid-template-columns:150px repeat(4,1fr); gap:2px; }
+  .heat-header { font-family:'DM Mono',monospace; font-size:10px; color:var(--text-dim); padding:8px 10px; letter-spacing:.5px; text-transform:uppercase; }
+  .heat-row-label { font-family:'DM Sans',sans-serif; font-size:12px; color:var(--text); padding:8px 10px; display:flex; align-items:center; background:var(--surface); border-radius:4px 0 0 4px; }
+  .heat-cell { padding:8px 10px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; transition:all .2s; cursor:default; }
+  .heat-cell:hover { filter:brightness(1.3); transform:scale(1.05); }
+  .heat-0 { background:var(--surface); color:var(--text-muted); }
+  .heat-1 { background:rgba(255,61,85,.08); color:var(--red); border:1px solid var(--red-border); }
+  .heat-2 { background:rgba(255,61,85,.16); color:var(--red); border:1px solid rgba(255,61,85,.3); }
+  .heat-3 { background:rgba(255,61,85,.28); color:var(--red); border:1px solid rgba(255,61,85,.4); }
+  .heat-4 { background:rgba(255,61,85,.45); color:#fff; border:1px solid var(--red); }
+  .heat-5 { background:rgba(255,61,85,.65); color:#fff; border:1px solid var(--red); }
+  .heat-many { background:var(--red); color:#fff; }
+
+  /* VIEW PANELS */
+  .view-panel { display:none; }
+  .view-panel.active { display:block; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width:5px; height:5px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+  /* NO RESULTS */
+  .no-results { text-align:center; padding:40px; color:var(--text-dim); font-family:'DM Mono',monospace; font-size:12px; }
+
+  /* ==============================
+     PRINT / PDF STYLES
+     ============================== */
+  @media print {
+    * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+    body { background:#0a0c10 !important; color:#e8ecf4 !important; font-size:11px; }
+
+    .header { position:relative !important; break-inside:avoid; border-bottom:1px solid #1e2330; }
+    .export-btn { display:none !important; }
+    .view-tabs { display:none !important; }
+
+    /* Show ALL panels when printing */
+    .view-panel { display:block !important; break-before:page; }
+    #panel-buyers { break-before:avoid; }
+
+    .main { padding:16px 24px; max-width:100%; }
+    .kpi-row { grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+    .kpi-card { padding:12px 14px; break-inside:avoid; }
+    .kpi-number { font-size:28px; }
+
+    /* Buyers: single column list for print */
+    .buyer-grid { grid-template-columns:1fr 1fr; gap:10px; }
+    .buyer-contracts { max-height:none !important; overflow:visible !important; }
+    .buyer-contracts.open,
+    .buyer-contracts { max-height:none !important; display:block !important; }
+    .buyer-card { break-inside:avoid; transform:none !important; box-shadow:none !important; }
+    .buyer-card.expanded .toggle-icon { transform:none; }
+    .toggle-icon { display:none; }
+    .filter-row { display:none !important; }
+    .legend { break-inside:avoid; }
+
+    /* Owner table */
+    .owner-table { break-inside:avoid; }
+    .owner-row { break-inside:avoid; }
+
+    /* Heatmap */
+    .heat-cell:hover { filter:none; transform:none; }
+
+    .section-title { break-after:avoid; }
+
+    @page {
+      size: A3 landscape;
+      margin: 1.5cm 1.5cm;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Contract Expiration Dashboard · 2026</h1>
+    <div class="subtitle">ALL DEPARTMENTS · GENERATED JUNE 1, 2026 · PROCUREMENT FOCUS VIEW</div>
+  </div>
+  <div class="header-right">
+    <button class="export-btn" onclick="exportPDF()">⬇ Exportar PDF</button>
+    <div class="header-badge"><div class="pulse"></div>LIVE — ACT NOW</div>
+  </div>
+</div>
+
+<div class="view-tabs">
+  <button class="tab-btn active" onclick="switchTab('buyers')">👤 Procurement Buyers</button>
+  <button class="tab-btn" onclick="switchTab('owners')">📋 Contract Owners</button>
+  <button class="tab-btn" onclick="switchTab('heat')">🔥 Heatmap</button>
+</div>
+
+<div class="main">
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi-card red">
+      <div class="kpi-label">Vencidos (Q anterior)</div>
+      <div class="kpi-number">61</div>
+      <div class="kpi-desc">Expirados — acción inmediata requerida</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Vence este mes</div>
+      <div class="kpi-number">20+</div>
+      <div class="kpi-desc">Junio 2026 — prioridad crítica esta semana</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">Vence este trimestre</div>
+      <div class="kpi-number">65</div>
+      <div class="kpi-desc">Q2 2026 — gestionar antes de fin de julio</div>
+    </div>
+    <div class="kpi-card yellow">
+      <div class="kpi-label">Vence próx. trimestre</div>
+      <div class="kpi-number">65+</div>
+      <div class="kpi-desc">Q3 2026 — planificar renovaciones ahora</div>
+    </div>
+  </div>
+
+  <!-- ===== BUYERS VIEW ===== -->
+  <div id="panel-buyers" class="view-panel active">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>VENCIDO</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>ESTE MES</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>ESTE TRIMESTRE</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>PRÓX. TRIMESTRE</div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">FILTRAR POR URGENCIA</span>
+      <div class="filter-group" id="urgency-filters">
+        <button class="filter-btn active" data-urgency="all" onclick="setUrgency('all',this)">Todos</button>
+        <button class="filter-btn f-red" data-urgency="red" onclick="setUrgency('red',this)">● Vencidos</button>
+        <button class="filter-btn f-orange" data-urgency="orange" onclick="setUrgency('orange',this)">● Este mes</button>
+        <button class="filter-btn f-yellow" data-urgency="yellow" onclick="setUrgency('yellow',this)">● Este trimestre</button>
+        <button class="filter-btn f-blue" data-urgency="blue" onclick="setUrgency('blue',this)">● Próx. trimestre</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">FILTRAR POR DEPARTAMENTO</span>
+      <div class="filter-group" id="dept-filters"></div>
+    </div>
+
+    <div class="section-title">Compradores · Ordenados por Urgencia</div>
+    <div class="buyer-grid" id="buyer-grid"></div>
+  </div>
+
+  <!-- ===== OWNERS VIEW ===== -->
+  <div id="panel-owners" class="view-panel">
+    <div class="section-title">Contract Owners · Carga por Prioridad</div>
+    <div class="owner-table">
+      <div class="owner-table-header">
+        <span class="sort-btn" onclick="sortOwners('name')">OWNER ↕</span>
+        <span>DEPARTAMENTO</span>
+        <span style="color:var(--red)">VENC.</span>
+        <span style="color:var(--orange)">MES</span>
+        <span style="color:var(--yellow)">TRIM.</span>
+        <span style="color:var(--blue)">PROX.</span>
+      </div>
+      <div id="owner-table-body"></div>
+    </div>
+  </div>
+
+  <!-- ===== HEATMAP VIEW ===== -->
+  <div id="panel-heat" class="view-panel">
+    <div class="section-title">Heatmap · Contratos por Comprador y Urgencia</div>
+    <div class="heat-grid" id="heat-grid"></div>
+  </div>
+
+</div>
+
+<script>
+// =============================================
+// DATA
+// =============================================
+const buyers = [
+  { name:"Luciano Monaco",  short:"LM", color:"#4fa3ff" },
+  { name:"Nathaly Cortes",  short:"NC", color:"#22d3a0" },
+  { name:"Bulk Load",       short:"BL", color:"#a78bfa" },
+  { name:"Camille Molina",  short:"CM", color:"#f472b6" },
+  { name:"Rashad Mirzayev", short:"RM", color:"#fb923c" },
+  { name:"David Montano",   short:"DM", color:"#fbbf24" },
+  { name:"Gabriel Quiroga", short:"GQ", color:"#34d399" },
+  { name:"Valentina Caro",  short:"VC", color:"#f87171" },
+  { name:"Raúl García",     short:"RG", color:"#60a5fa" },
+  { name:"Alejandro Ruiz",  short:"AR", color:"#c084fc" },
+];
+
+// urgency: red=expired, orange=this month, yellow=this quarter, blue=next quarter
+// num: contract number from PDF
+const contracts = [
+  // LUCIANO MONACO
+  { buyer:"Luciano Monaco", num:"2918", name:"Tecnotrans - IT #2", dept:"IT", urgency:"red" },
+  { buyer:"Luciano Monaco", num:"2596", name:"Inet Networks - IT", dept:"IT", urgency:"red" },
+  { buyer:"Luciano Monaco", num:"2269", name:"Tecnotrans - IT #1", dept:"IT", urgency:"red" },
+  { buyer:"Luciano Monaco", num:"2845", name:"Broadband Connect - IT", dept:"IT", urgency:"red" },
+  { buyer:"Luciano Monaco", num:"343",  name:"Inet Networks - Renewal", dept:"IT", urgency:"red" },
+  { buyer:"Luciano Monaco", num:"3093", name:"Replenish - Customer Support", dept:"Customer", urgency:"red" },
+  { buyer:"Luciano Monaco", num:"2839", name:"IGT - Customer #1", dept:"Customer", urgency:"red" },
+  { buyer:"Luciano Monaco", num:"2853", name:"Foundation - Customer", dept:"Customer", urgency:"red" },
+  { buyer:"Luciano Monaco", num:"2319", name:"Airobot - MSA - Platform", dept:"Various", urgency:"red" },
+  { buyer:"Luciano Monaco", num:"877",  name:"A2 Secure - MSA", dept:"IT", urgency:"orange" },
+  { buyer:"Luciano Monaco", num:"2742", name:"MSA - ElevenLabs", dept:"IT", urgency:"orange" },
+  { buyer:"Luciano Monaco", num:"2320", name:"Cornerstone - OF", dept:"IT", urgency:"orange" },
+  { buyer:"Luciano Monaco", num:"1859", name:"A2 Secure - Renewal", dept:"IT", urgency:"orange" },
+  { buyer:"Luciano Monaco", num:"2318", name:"Airobot - Various", dept:"Various", urgency:"yellow" },
+  { buyer:"Luciano Monaco", num:"2832", name:"Nettix - IT", dept:"IT", urgency:"yellow" },
+  { buyer:"Luciano Monaco", num:"1977", name:"LA - A2 Secure IT", dept:"IT", urgency:"yellow" },
+  { buyer:"Luciano Monaco", num:"1904", name:"TE - Tecnotrans", dept:"IT", urgency:"yellow" },
+  { buyer:"Luciano Monaco", num:"414",  name:"EI - Customer (Coface)", dept:"Customer", urgency:"yellow" },
+  { buyer:"Luciano Monaco", num:"2309", name:"FR - Customer #1", dept:"Customer", urgency:"yellow" },
+  { buyer:"Luciano Monaco", num:"2940", name:"El Mundo - Customer", dept:"Customer", urgency:"yellow" },
+  { buyer:"Luciano Monaco", num:"2306", name:"FR - Customer #2", dept:"Customer", urgency:"yellow" },
+  { buyer:"Luciano Monaco", num:"386",  name:"FR - Customer #386", dept:"Customer", urgency:"yellow" },
+  { buyer:"Luciano Monaco", num:"2838", name:"Gorilla - Analytics", dept:"Analytics", urgency:"blue" },
+  { buyer:"Luciano Monaco", num:"1150", name:"Cloudflare - IT", dept:"IT", urgency:"blue" },
+  { buyer:"Luciano Monaco", num:"2050", name:"GitLab - IT", dept:"IT", urgency:"blue" },
+  { buyer:"Luciano Monaco", num:"1053", name:"Datadog - IT", dept:"IT", urgency:"blue" },
+  { buyer:"Luciano Monaco", num:"2073", name:"IGT - Customer #2073", dept:"Customer", urgency:"blue" },
+  { buyer:"Luciano Monaco", num:"2038", name:"Zendesk - Customer #2038", dept:"Customer", urgency:"blue" },
+  { buyer:"Luciano Monaco", num:"2072", name:"Zendesk - Customer #2072", dept:"Customer", urgency:"blue" },
+  { buyer:"Luciano Monaco", num:"2650", name:"Dev Tools - IT", dept:"IT", urgency:"blue" },
+  { buyer:"Luciano Monaco", num:"2040", name:"Datadog #2040", dept:"IT", urgency:"blue" },
+  { buyer:"Luciano Monaco", num:"2024", name:"Cloudflare #2024", dept:"IT", urgency:"blue" },
+  { buyer:"Luciano Monaco", num:"1840", name:"Airobot - Air #1840", dept:"Air", urgency:"blue" },
+
+  // NATHALY CORTES
+  { buyer:"Nathaly Cortes", num:"3285", name:"Transcend Medical", dept:"Medical", urgency:"red" },
+  { buyer:"Nathaly Cortes", num:"2798", name:"MB - HR", dept:"HR", urgency:"red" },
+  { buyer:"Nathaly Cortes", num:"3192", name:"EVE Medical / Soja", dept:"Medical", urgency:"red" },
+  { buyer:"Nathaly Cortes", num:"2862", name:"Coactiva - Facilities", dept:"Facilities", urgency:"red" },
+  { buyer:"Nathaly Cortes", num:"2714", name:"INN - Facilities", dept:"Facilities", urgency:"red" },
+  { buyer:"Nathaly Cortes", num:"3082", name:"Tapotec - Facilities", dept:"Facilities", urgency:"red" },
+  { buyer:"Nathaly Cortes", num:"2793", name:"7talent - HR", dept:"HR", urgency:"red" },
+  { buyer:"Nathaly Cortes", num:"2668", name:"Coutts - HR", dept:"HR", urgency:"red" },
+  { buyer:"Nathaly Cortes", num:"2711", name:"Figma - OF Design", dept:"Various", urgency:"orange" },
+  { buyer:"Nathaly Cortes", num:"2640", name:"Regus - Renewal A", dept:"Facilities", urgency:"orange" },
+  { buyer:"Nathaly Cortes", num:"2757", name:"Nuvolar Consulting", dept:"HR", urgency:"orange" },
+  { buyer:"Nathaly Cortes", num:"3057", name:"Regus - Renewal B", dept:"Facilities", urgency:"orange" },
+  { buyer:"Nathaly Cortes", num:"3192", name:"O - HR", dept:"HR", urgency:"yellow" },
+  { buyer:"Nathaly Cortes", num:"2832", name:"MISO - Revenue", dept:"Revenue", urgency:"yellow" },
+  { buyer:"Nathaly Cortes", num:"2832", name:"Regus - Facilities Q", dept:"Facilities", urgency:"yellow" },
+  { buyer:"Nathaly Cortes", num:"2314", name:"LYRA - Facilities", dept:"Facilities", urgency:"yellow" },
+  { buyer:"Nathaly Cortes", num:"3011", name:"O - HR #2", dept:"HR", urgency:"yellow" },
+  { buyer:"Nathaly Cortes", num:"3245", name:"PL - Facilities", dept:"Facilities", urgency:"yellow" },
+  { buyer:"Nathaly Cortes", num:"1904", name:"L'Equipe - PR #1", dept:"PR", urgency:"yellow" },
+  { buyer:"Nathaly Cortes", num:"2870", name:"L'Equipe - PR #2", dept:"PR", urgency:"yellow" },
+  { buyer:"Nathaly Cortes", num:"3049", name:"Nu - Various", dept:"Various", urgency:"yellow" },
+  { buyer:"Nathaly Cortes", num:"2994", name:"Fi - Revenue", dept:"Revenue", urgency:"yellow" },
+  { buyer:"Nathaly Cortes", num:"2835", name:"vLex - Legal", dept:"Legal", urgency:"yellow" },
+  { buyer:"Nathaly Cortes", num:"2576", name:"NP - Air #2576", dept:"Air", urgency:"blue" },
+  { buyer:"Nathaly Cortes", num:"3390", name:"Co - Marketing #3390", dept:"Marketing", urgency:"blue" },
+  { buyer:"Nathaly Cortes", num:"3391", name:"Co - Marketing #3391", dept:"Marketing", urgency:"blue" },
+  { buyer:"Nathaly Cortes", num:"3107", name:"GRI - PR Griffin", dept:"PR", urgency:"blue" },
+  { buyer:"Nathaly Cortes", num:"2923", name:"EV - PR #2923", dept:"PR", urgency:"blue" },
+  { buyer:"Nathaly Cortes", num:"3030", name:"Nuvolar - Various #3030", dept:"Various", urgency:"blue" },
+  { buyer:"Nathaly Cortes", num:"2983", name:"DE - Finance", dept:"Finance", urgency:"blue" },
+  { buyer:"Nathaly Cortes", num:"3286", name:"ES - Facilities #3286", dept:"Facilities", urgency:"blue" },
+  { buyer:"Nathaly Cortes", num:"3206", name:"Ze - Medical #3206", dept:"Medical", urgency:"blue" },
+
+  // BULK LOAD
+  { buyer:"Bulk Load", num:"2895", name:"OneSpan - Legal", dept:"Legal", urgency:"red" },
+  { buyer:"Bulk Load", num:"3209", name:"AO - HR", dept:"HR", urgency:"red" },
+  { buyer:"Bulk Load", num:"3233", name:"CyberArk - Payments", dept:"Payments", urgency:"red" },
+  { buyer:"Bulk Load", num:"2972", name:"WorkForce - Finance", dept:"Finance", urgency:"red" },
+  { buyer:"Bulk Load", num:"2777", name:"EVE - HR", dept:"HR", urgency:"red" },
+  { buyer:"Bulk Load", num:"2321", name:"EIN - IT Chromebook", dept:"IT", urgency:"red" },
+  { buyer:"Bulk Load", num:"1625", name:"OP - Revenue Package A", dept:"Revenue", urgency:"red" },
+  { buyer:"Bulk Load", num:"1626", name:"OP - Revenue Package B", dept:"Revenue", urgency:"red" },
+  { buyer:"Bulk Load", num:"849–873", name:"OP Revenue Group (x14 routes)", dept:"Revenue", urgency:"red" },
+  { buyer:"Bulk Load", num:"2047", name:"Gestion Doc", dept:"Various", urgency:"orange" },
+  { buyer:"Bulk Load", num:"1838", name:"WhistleB - MSA", dept:"Various", urgency:"orange" },
+  { buyer:"Bulk Load", num:"2829", name:"Signaturit - OF", dept:"Various", urgency:"orange" },
+  { buyer:"Bulk Load", num:"2766", name:"Carbon Footprint", dept:"Various", urgency:"orange" },
+  { buyer:"Bulk Load", num:"2413", name:"S - Facilities", dept:"Facilities", urgency:"yellow" },
+  { buyer:"Bulk Load", num:"3011", name:"O - HR Bulk", dept:"HR", urgency:"yellow" },
+  { buyer:"Bulk Load", num:"2672", name:"EV - IT Oracle", dept:"IT", urgency:"yellow" },
+  { buyer:"Bulk Load", num:"3009", name:"EI - Finance", dept:"Finance", urgency:"yellow" },
+  { buyer:"Bulk Load", num:"3000", name:"Si - HR Bulk", dept:"HR", urgency:"yellow" },
+  { buyer:"Bulk Load", num:"2872", name:"To - Revenue", dept:"Revenue", urgency:"yellow" },
+  { buyer:"Bulk Load", num:"1908", name:"W - Legal", dept:"Legal", urgency:"yellow" },
+  { buyer:"Bulk Load", num:"1481", name:"CT - Air", dept:"Air", urgency:"yellow" },
+  { buyer:"Bulk Load", num:"2148", name:"DE - Facilities", dept:"Facilities", urgency:"yellow" },
+  { buyer:"Bulk Load", num:"3002", name:"Ca - Facilities", dept:"Facilities", urgency:"yellow" },
+  { buyer:"Bulk Load", num:"3208", name:"So - Air", dept:"Air", urgency:"yellow" },
+  { buyer:"Bulk Load", num:"2671", name:"Hays - HR", dept:"HR", urgency:"blue" },
+  { buyer:"Bulk Load", num:"2634", name:"Egy - Customer (Xcel)", dept:"Customer", urgency:"blue" },
+  { buyer:"Bulk Load", num:"3130", name:"BB - Payments", dept:"Payments", urgency:"blue" },
+  { buyer:"Bulk Load", num:"2974", name:"Fiv - Revenue", dept:"Revenue", urgency:"blue" },
+  { buyer:"Bulk Load", num:"2156", name:"AR - Facilities", dept:"Facilities", urgency:"blue" },
+  { buyer:"Bulk Load", num:"3422", name:"Eu - Facilities", dept:"Facilities", urgency:"blue" },
+  { buyer:"Bulk Load", num:"2604", name:"TRI - Vacation", dept:"HR", urgency:"blue" },
+  { buyer:"Bulk Load", num:"3120", name:"Air - Analytics #3120", dept:"Analytics", urgency:"blue" },
+
+  // CAMILLE MOLINA
+  { buyer:"Camille Molina", num:"3209", name:"AO - HR #3209", dept:"HR", urgency:"red" },
+  { buyer:"Camille Molina", num:"1858", name:"Deliveroo Italy - MS", dept:"Various", urgency:"orange" },
+  { buyer:"Camille Molina", num:"2112", name:"Orange SA - OF mobile", dept:"Various", urgency:"orange" },
+  { buyer:"Camille Molina", num:"3046", name:"Nova - T&Cs - Recruit", dept:"HR", urgency:"orange" },
+  { buyer:"Camille Molina", num:"2952", name:"Tomas - Revenue", dept:"Revenue", urgency:"yellow" },
+  { buyer:"Camille Molina", num:"2878", name:"72 - PR", dept:"PR", urgency:"yellow" },
+  { buyer:"Camille Molina", num:"2235", name:"OR - Procurement", dept:"PR", urgency:"yellow" },
+  { buyer:"Camille Molina", num:"2316", name:"Tomas - Customer", dept:"Customer", urgency:"yellow" },
+  { buyer:"Camille Molina", num:"2877", name:"TR - Revenue #1", dept:"Revenue", urgency:"yellow" },
+  { buyer:"Camille Molina", num:"2256", name:"TR - Revenue #2", dept:"Revenue", urgency:"yellow" },
+  { buyer:"Camille Molina", num:"1200", name:"TR - Revenue #1200", dept:"Revenue", urgency:"yellow" },
+  { buyer:"Camille Molina", num:"3457", name:"KP - Legal", dept:"Legal", urgency:"yellow" },
+  { buyer:"Camille Molina", num:"3392", name:"N - HR #3392", dept:"HR", urgency:"yellow" },
+  { buyer:"Camille Molina", num:"2575", name:"Bu - HR #2575", dept:"HR", urgency:"blue" },
+  { buyer:"Camille Molina", num:"2081", name:"Try - Retail", dept:"Retail", urgency:"blue" },
+  { buyer:"Camille Molina", num:"3104", name:"Em - Retail #3104", dept:"Retail", urgency:"blue" },
+  { buyer:"Camille Molina", num:"2465", name:"Ag - Marketing", dept:"Marketing", urgency:"blue" },
+  { buyer:"Camille Molina", num:"2510", name:"Hur - Marketing #2510", dept:"Marketing", urgency:"blue" },
+  { buyer:"Camille Molina", num:"2006", name:"Eu - Marketing #2006", dept:"Marketing", urgency:"blue" },
+  { buyer:"Camille Molina", num:"3063", name:"Re - Retail #3063", dept:"Retail", urgency:"blue" },
+  { buyer:"Camille Molina", num:"2022", name:"Dy - Medical #2022", dept:"Medical", urgency:"blue" },
+  { buyer:"Camille Molina", num:"3200", name:"Wi - Marketing #3200", dept:"Marketing", urgency:"blue" },
+  { buyer:"Camille Molina", num:"2487", name:"Wo - Integrated #2487", dept:"Integrated", urgency:"blue" },
+  { buyer:"Camille Molina", num:"3481", name:"CO - Integrated #3481", dept:"Integrated", urgency:"blue" },
+  { buyer:"Camille Molina", num:"2912", name:"Rya - Revenue #2912", dept:"Revenue", urgency:"blue" },
+
+  // RASHAD MIRZAYEV
+  { buyer:"Rashad Mirzayev", num:"1899", name:"Q4 Finance", dept:"Finance", urgency:"red" },
+  { buyer:"Rashad Mirzayev", num:"2792", name:"Fjordtech - Revenue", dept:"Revenue", urgency:"red" },
+  { buyer:"Rashad Mirzayev", num:"2199", name:"Lyreco Italy", dept:"Various", urgency:"orange" },
+  { buyer:"Rashad Mirzayev", num:"1423", name:"Regus Management", dept:"Facilities", urgency:"orange" },
+  { buyer:"Rashad Mirzayev", num:"2832", name:"MISO - Revenue #2832", dept:"Revenue", urgency:"yellow" },
+  { buyer:"Rashad Mirzayev", num:"2413", name:"S - Facilities #2413", dept:"Facilities", urgency:"yellow" },
+  { buyer:"Rashad Mirzayev", num:"2314", name:"W - Facilities", dept:"Facilities", urgency:"yellow" },
+  { buyer:"Rashad Mirzayev", num:"2314", name:"LY - Facilities", dept:"Facilities", urgency:"yellow" },
+  { buyer:"Rashad Mirzayev", num:"3042", name:"ES - Facilities #3042", dept:"Facilities", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"2680", name:"CI - Facilities", dept:"Facilities", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"3031", name:"PR - Facilities #3031", dept:"Facilities", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"2151", name:"RE - Facilities #2151", dept:"Facilities", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"71",   name:"EIN - HR #71", dept:"HR", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"2172", name:"Hays - HR #2172", dept:"HR", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"2038", name:"Zendesk - Customer #2038", dept:"Customer", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"2049", name:"Zendesk - Customer #2049", dept:"Customer", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"2502", name:"Tra - Revenue #2502", dept:"Revenue", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"2097", name:"AP - Revenue #2097", dept:"Revenue", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"885",  name:"AP - Revenue #885", dept:"Revenue", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"3029", name:"AP - Revenue #3029", dept:"Revenue", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"2030", name:"Tra - Revenue #2030", dept:"Revenue", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"3101", name:"AP - Revenue #3101", dept:"Revenue", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"1802", name:"VI - Facilities #1802", dept:"Facilities", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"1612", name:"MA - Facilities #1612", dept:"Facilities", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"1967", name:"LYR - Facilities #1967", dept:"Facilities", urgency:"blue" },
+  { buyer:"Rashad Mirzayev", num:"1568", name:"UNI - IT #1568", dept:"IT", urgency:"blue" },
+
+  // DAVID MONTANO
+  { buyer:"David Montano", num:"2919", name:"EVEX - PR / Rafinit", dept:"PR", urgency:"red" },
+  { buyer:"David Montano", num:"2809", name:"OLT Facilities / Werfen", dept:"Facilities", urgency:"red" },
+  { buyer:"David Montano", num:"2686", name:"Hubspot - Renewal", dept:"Various", urgency:"orange" },
+  { buyer:"David Montano", num:"2958", name:"Hubert - IT", dept:"IT", urgency:"yellow" },
+  { buyer:"David Montano", num:"2589", name:"INS Medical / Dynamics", dept:"Medical", urgency:"yellow" },
+  { buyer:"David Montano", num:"2996", name:"XERO - HR", dept:"HR", urgency:"yellow" },
+  { buyer:"David Montano", num:"2568", name:"Sistena - Marketing", dept:"Marketing", urgency:"blue" },
+  { buyer:"David Montano", num:"2892", name:"WE - Facilities #2892", dept:"Facilities", urgency:"blue" },
+
+  // GABRIEL QUIROGA
+  { buyer:"Gabriel Quiroga", num:"829",  name:"OP Global / Air (Globe)", dept:"Air", urgency:"red" },
+  { buyer:"Gabriel Quiroga", num:"2309", name:"For - Revenue #1", dept:"Revenue", urgency:"red" },
+  { buyer:"Gabriel Quiroga", num:"2306", name:"For - Revenue #2", dept:"Revenue", urgency:"red" },
+  { buyer:"Gabriel Quiroga", num:"2312", name:"For - Revenue #3", dept:"Revenue", urgency:"red" },
+  { buyer:"Gabriel Quiroga", num:"1860", name:"Magnet - Air #1860", dept:"Air", urgency:"yellow" },
+  { buyer:"Gabriel Quiroga", num:"1440", name:"B - Revenue #1440", dept:"Revenue", urgency:"yellow" },
+  { buyer:"Gabriel Quiroga", num:"1588", name:"Sa - Unassigned #1588", dept:"Various", urgency:"blue" },
+
+  // VALENTINA CARO
+  { buyer:"Valentina Caro", num:"3160", name:"Sol - Air #3160", dept:"Air", urgency:"red" },
+  { buyer:"Valentina Caro", num:"2958", name:"Wikibusiness - Agreement", dept:"Various", urgency:"orange" },
+  { buyer:"Valentina Caro", num:"3457", name:"KP - Legal #3457", dept:"Legal", urgency:"yellow" },
+  { buyer:"Valentina Caro", num:"3364", name:"IL - Facilities #3364", dept:"Facilities", urgency:"yellow" },
+  { buyer:"Valentina Caro", num:"3200", name:"Wi - Marketing #3200", dept:"Marketing", urgency:"yellow" },
+  { buyer:"Valentina Caro", num:"3335", name:"Co - Facilities #3335", dept:"Facilities", urgency:"blue" },
+  { buyer:"Valentina Caro", num:"3106", name:"Nu - Medical #3106", dept:"Medical", urgency:"blue" },
+  { buyer:"Valentina Caro", num:"3083", name:"Bu - HR #3083", dept:"HR", urgency:"blue" },
+
+  // RAÚL GARCÍA
+  { buyer:"Raúl García", num:"1823", name:"Sal - Retail #1823", dept:"Retail", urgency:"red" },
+  { buyer:"Raúl García", num:"970",  name:"EVE - IT / Event #970", dept:"IT", urgency:"red" },
+  { buyer:"Raúl García", num:"922",  name:"OP Revenue / Sch #922", dept:"Revenue", urgency:"red" },
+  { buyer:"Raúl García", num:"1150", name:"Clo - IT #1150", dept:"IT", urgency:"blue" },
+
+  // ALEJANDRO RUIZ
+  { buyer:"Alejandro Ruiz", num:"3422", name:"Cu - IT / Micro #3422", dept:"IT", urgency:"yellow" },
+  { buyer:"Alejandro Ruiz", num:"3422", name:"Ne - IT #3422", dept:"IT", urgency:"yellow" },
+];
+
+// =============================================
+// OWNER DATA
+// =============================================
+const ownerData = [
+  { name:"Javier Ruiz",    dept:"Air",       red:14, orange:1, yellow:2, blue:1 },
+  { name:"Pellegrini",     dept:"IT",        red:5,  orange:1, yellow:5, blue:2 },
+  { name:"Ivan Morales",   dept:"Facilities",red:5,  orange:1, yellow:8, blue:6 },
+  { name:"Cristina López", dept:"HR/Finance",red:2,  orange:0, yellow:0, blue:0 },
+  { name:"Lorena Pérez",   dept:"Finance",   red:2,  orange:0, yellow:1, blue:1 },
+  { name:"Bettina Cruz",   dept:"HR",        red:2,  orange:0, yellow:1, blue:2 },
+  { name:"Francisco Soto", dept:"HR",        red:2,  orange:0, yellow:2, blue:0 },
+  { name:"Jorge Campos",   dept:"Payments",  red:1,  orange:0, yellow:1, blue:1 },
+  { name:"Marcos Ríos",    dept:"Revenue",   red:3,  orange:0, yellow:1, blue:4 },
+  { name:"Ima García",     dept:"Revenue",   red:1,  orange:0, yellow:1, blue:4 },
+  { name:"Carlos Vega",    dept:"Legal",     red:1,  orange:0, yellow:0, blue:1 },
+  { name:"Miri Sanz",      dept:"IT",        red:1,  orange:0, yellow:0, blue:0 },
+  { name:"Natalia Ruiz",   dept:"Medical",   red:2,  orange:0, yellow:1, blue:1 },
+  { name:"Sergio Lara",    dept:"Customer",  red:1,  orange:0, yellow:0, blue:0 },
+  { name:"Fab Moreno",     dept:"IT",        red:1,  orange:0, yellow:0, blue:0 },
+  { name:"Luis Torres",    dept:"Customer",  red:2,  orange:0, yellow:2, blue:3 },
+  { name:"Lin Serna",      dept:"Facilities",red:1,  orange:0, yellow:0, blue:3 },
+  { name:"Chantal Ruiz",   dept:"Revenue",   red:0,  orange:1, yellow:4, blue:1 },
+  { name:"Silvia Mar.",    dept:"Legal",     red:0,  orange:0, yellow:1, blue:0 },
+  { name:"Ana Pérez",      dept:"IT",        red:0,  orange:0, yellow:1, blue:2 },
+  { name:"Guillermo N.",   dept:"Legal",     red:0,  orange:0, yellow:1, blue:0 },
+  { name:"Isadora P.",     dept:"HR",        red:0,  orange:0, yellow:1, blue:0 },
+  { name:"Zaid Morales",   dept:"Marketing", red:0,  orange:0, yellow:0, blue:2 },
+  { name:"César Bravo",    dept:"Analytics", red:0,  orange:0, yellow:0, blue:2 },
+  { name:"Agustina T.",    dept:"Customer",  red:0,  orange:0, yellow:1, blue:2 },
+  { name:"Mónica Vera",    dept:"Integrated",red:0,  orange:0, yellow:0, blue:3 },
+  { name:"David Saura",    dept:"Finance",   red:1,  orange:0, yellow:0, blue:0 },
+  { name:"Santiago L.",    dept:"Revenue",   red:0,  orange:0, yellow:0, blue:1 },
+  { name:"Rui Santos",     dept:"Retail",    red:0,  orange:0, yellow:0, blue:3 },
+  { name:"Zara Malik",     dept:"HR",        red:0,  orange:0, yellow:1, blue:0 },
+  { name:"Pablo Reyes",    dept:"Medical",   red:0,  orange:0, yellow:0, blue:1 },
+  { name:"Jacinto V.",     dept:"Medical",   red:0,  orange:0, yellow:0, blue:2 },
+  { name:"Zaira Al.",      dept:"Marketing", red:0,  orange:0, yellow:0, blue:2 },
+  { name:"Zulay P.",       dept:"Facilities",red:0,  orange:0, yellow:1, blue:0 },
+  { name:"Carolina V.",    dept:"Retail",    red:0,  orange:0, yellow:0, blue:1 },
+];
+
+// =============================================
+// STATE
+// =============================================
+let activeUrgency = 'all';
+let activeDept = 'all';
+let expandedBuyers = new Set();
+let ownerSortKey = 'urgency';
+let ownerSortDir = -1;
+
+// =============================================
+// DEPT FILTER BUILD
+// =============================================
+function getAllDepts() {
+  const depts = [...new Set(contracts.map(c => c.dept))].sort();
+  return depts;
+}
+
+function buildDeptFilters() {
+  const container = document.getElementById('dept-filters');
+  const depts = getAllDepts();
+  container.innerHTML = `<button class="filter-btn active" data-dept="all" onclick="setDept('all',this)">Todos</button>` +
+    depts.map(d => `<button class="filter-btn" data-dept="${d}" onclick="setDept('${d}',this)">${d}</button>`).join('');
+}
+
+// =============================================
+// RENDER BUYERS
+// =============================================
+function buildBuyerData() {
+  return buyers.map(b => {
+    let myContracts = contracts.filter(c => c.buyer === b.name);
+    if (activeDept !== 'all') myContracts = myContracts.filter(c => c.dept === activeDept);
+    const red = myContracts.filter(c => c.urgency === 'red').length;
+    const orange = myContracts.filter(c => c.urgency === 'orange').length;
+    const yellow = myContracts.filter(c => c.urgency === 'yellow').length;
+    const blue = myContracts.filter(c => c.urgency === 'blue').length;
+    const urgencyScore = red * 4 + orange * 3 + yellow * 2 + blue;
+    return { ...b, contracts: myContracts, red, orange, yellow, blue, total: myContracts.length, urgencyScore };
+  }).filter(b => b.total > 0).sort((a, b) => b.urgencyScore - a.urgencyScore);
+}
+
+function urgencyLabel(u) {
+  return u === 'red' ? 'VENCIDO' : u === 'orange' ? 'ESTE MES' : u === 'yellow' ? 'ESTE TRIM.' : 'PROX.';
+}
+
+function renderBuyers() {
+  const data = buildBuyerData();
+  const grid = document.getElementById('buyer-grid');
+  grid.innerHTML = '';
+
+  const filtered = data.filter(b => {
+    if (activeUrgency === 'all') return true;
+    return b[activeUrgency] > 0;
+  });
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="no-results">No hay contratos con este filtro</div>';
+    return;
+  }
+
+  filtered.forEach(b => {
+    const total = b.total || 1;
+    const rPct = (b.red / total * 100).toFixed(1);
+    const oPct = (b.orange / total * 100).toFixed(1);
+    const yPct = (b.yellow / total * 100).toFixed(1);
+    const bPct = (b.blue / total * 100).toFixed(1);
+    const isExpanded = expandedBuyers.has(b.name);
+
+    const displayContracts = activeUrgency === 'all'
+      ? [...b.contracts].sort((a, z) => {
+          const order = { red:4, orange:3, yellow:2, blue:1 };
+          return order[z.urgency] - order[a.urgency];
+        })
+      : b.contracts.filter(c => c.urgency === activeUrgency);
+
+    const card = document.createElement('div');
+    card.className = `buyer-card${isExpanded ? ' expanded' : ''}`;
+    card.innerHTML = `
+      <div class="buyer-header" onclick="toggleBuyer('${b.name.replace(/'/g,"\\'")}')">
+        <div class="buyer-avatar" style="background:${b.color}22;color:${b.color};border:1.5px solid ${b.color}44">${b.short}</div>
+        <div class="buyer-info">
+          <div class="buyer-name">${b.name}</div>
+          <div class="buyer-total">${b.total} contrato${b.total!==1?'s':''} · Score: ${b.urgencyScore}</div>
+        </div>
+        <div class="buyer-urgency-pills">
+          ${b.red>0?`<div class="pill red">${b.red}</div>`:''}
+          ${b.orange>0?`<div class="pill orange">${b.orange}</div>`:''}
+          ${b.yellow>0?`<div class="pill yellow">${b.yellow}</div>`:''}
+          ${b.blue>0?`<div class="pill gray">${b.blue}</div>`:''}
+        </div>
+        <div class="toggle-icon">▼</div>
+      </div>
+      <div class="buyer-bar-section">
+        <div class="buyer-bar-track">
+          ${b.red>0?`<div class="bar-seg red" style="width:${rPct}%"></div>`:''}
+          ${b.orange>0?`<div class="bar-seg orange" style="width:${oPct}%"></div>`:''}
+          ${b.yellow>0?`<div class="bar-seg yellow" style="width:${yPct}%"></div>`:''}
+          ${b.blue>0?`<div class="bar-seg blue" style="width:${bPct}%"></div>`:''}
+        </div>
+      </div>
+      <div class="buyer-contracts${isExpanded?' open':''}" id="contracts-${b.name.replace(/ /g,'_')}">
+        ${displayContracts.map(c=>`
+          <div class="contract-row">
+            <div class="contract-urgency-dot dot-${c.urgency}"></div>
+            <div class="contract-name" title="${c.name}">${c.name}</div>
+            <div class="contract-num">#${c.num}</div>
+            <div class="contract-dept">${c.dept}</div>
+            <div class="contract-urgency-label label-${c.urgency}">${urgencyLabel(c.urgency)}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function toggleBuyer(name) {
+  if (expandedBuyers.has(name)) expandedBuyers.delete(name);
+  else expandedBuyers.add(name);
+  renderBuyers();
+}
+
+function setUrgency(u, btn) {
+  activeUrgency = u;
+  document.querySelectorAll('#urgency-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBuyers();
+}
+
+function setDept(d, btn) {
+  activeDept = d;
+  document.querySelectorAll('#dept-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBuyers();
+}
+
+// =============================================
+// RENDER OWNERS
+// =============================================
+function renderOwners() {
+  const sorted = [...ownerData].sort((a, b) => {
+    if (ownerSortKey === 'name') return ownerSortDir * a.name.localeCompare(b.name);
+    const sA = a.red*4+a.orange*3+a.yellow*2+a.blue;
+    const sB = b.red*4+b.orange*3+b.yellow*2+b.blue;
+    return ownerSortDir * (sB - sA);
+  });
+  document.getElementById('owner-table-body').innerHTML = sorted.map(o => {
+    const total = o.red+o.orange+o.yellow+o.blue;
+    return `<div class="owner-row">
+      <div><div class="owner-row-name">${o.name}</div><div class="owner-row-dept">${o.dept} · ${total} contratos</div></div>
+      <div class="owner-row-total">${o.dept}</div>
+      <div><div class="count-badge ${o.red>0?'cb-red':'cb-0'}">${o.red||'—'}</div></div>
+      <div><div class="count-badge ${o.orange>0?'cb-orange':'cb-0'}">${o.orange||'—'}</div></div>
+      <div><div class="count-badge ${o.yellow>0?'cb-yellow':'cb-0'}">${o.yellow||'—'}</div></div>
+      <div><div class="count-badge ${o.blue>0?'cb-blue':'cb-0'}">${o.blue||'—'}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function sortOwners(key) {
+  if (ownerSortKey === key) ownerSortDir *= -1;
+  ownerSortKey = key;
+  renderOwners();
+}
+
+// =============================================
+// RENDER HEATMAP
+// =============================================
+function renderHeat() {
+  const data = buildBuyerData();
+  const grid = document.getElementById('heat-grid');
+  const heatClass = n => {
+    if (!n) return 'heat-0';
+    if (n===1) return 'heat-1';
+    if (n===2) return 'heat-2';
+    if (n<=4) return 'heat-3';
+    if (n<=7) return 'heat-4';
+    if (n<=10) return 'heat-5';
+    return 'heat-many';
+  };
+  grid.innerHTML =
+    ['','VENCIDO','ESTE MES','TRIM. ACTUAL','PROX. TRIM.'].map(c=>`<div class="heat-header">${c}</div>`).join('') +
+    data.map(b=>`
+      <div class="heat-row-label">${b.name}</div>
+      <div class="heat-cell ${heatClass(b.red)}">${b.red||''}</div>
+      <div class="heat-cell ${heatClass(b.orange)}">${b.orange||''}</div>
+      <div class="heat-cell ${heatClass(b.yellow)}">${b.yellow||''}</div>
+      <div class="heat-cell ${heatClass(b.blue)}">${b.blue||''}</div>
+    `).join('');
+}
+
+// =============================================
+// TABS
+// =============================================
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active', ['buyers','owners','heat'][i]===tab);
+  });
+  document.querySelectorAll('.view-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`panel-${tab}`).classList.add('active');
+  if (tab==='owners') renderOwners();
+  if (tab==='heat') renderHeat();
+}
+
+// =============================================
+// PDF EXPORT
+// =============================================
+function exportPDF() {
+  // Expand all buyers for print
+  const allBuyerNames = buyers.map(b => b.name);
+  allBuyerNames.forEach(n => expandedBuyers.add(n));
+  renderBuyers();
+  renderOwners();
+  renderHeat();
+
+  // Show all panels for printing
+  document.querySelectorAll('.view-panel').forEach(p => p.style.display = 'block');
+
+  setTimeout(() => {
+    window.print();
+    // Restore after print dialog
+    setTimeout(() => {
+      document.querySelectorAll('.view-panel').forEach(p => p.style.display = '');
+      document.getElementById('panel-buyers').style.display = 'block';
+      document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+    }, 500);
+  }, 200);
+}
+
+// =============================================
+// INIT
+// =============================================
+buildDeptFilters();
+renderBuyers();
+</script>
+</body>
+</html>
